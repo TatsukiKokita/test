@@ -1,29 +1,142 @@
-// DOMContentLoaded is fired once the document has been loaded and parsed,
-// but without waiting for other external resources to load (css/images/etc)
-// That makes the app more responsive and perceived as faster.
-// https://developer.mozilla.org/Web/Reference/Events/DOMContentLoaded
-window.addEventListener('DOMContentLoaded', function() {
+(function() {
 
-  // We'll ask the browser to use strict code to help us catch errors earlier.
-  // https://developer.mozilla.org/Web/JavaScript/Reference/Functions_and_function_scope/Strict_mode
-  'use strict';
+    // Matter aliases
+    var Engine = Matter.Engine,
+        Gui = Matter.Gui,
+        World = Matter.World,
+        Bodies = Matter.Bodies,
+        Body = Matter.Body,
+        Composite = Matter.Composite,
+        Composites = Matter.Composites,
+        Common = Matter.Common,
+        Constraint = Matter.Constraint,
+        MouseConstraint = Matter.MouseConstraint;
 
-  var translate = navigator.mozL10n.get;
+    var Demo = {};
 
-  // We want to wait until the localisations library has loaded all the strings.
-  // So we'll tell it to let us know once it's ready.
-  navigator.mozL10n.once(start);
+    var _engine,
+        _sceneName = 'mixed',
+        _sceneWidth,
+        _sceneHeight;
 
-  // ---
+    Demo.init = function() {
+        var canvasContainer = document.getElementById('world');
+        
+        
+        _engine = Engine.create(canvasContainer, {
+            render: {
+                options: {
+                    wireframes: false,
+                    showAngleIndicator: true,
+                    showDebug: true
+                }
+            }
+        });
 
-  function start() {
+        setTimeout(function() {
+            Engine.run(_engine);
+            Demo.updateScene();
+        }, 800);
+        
+        window.addEventListener('deviceorientation', Demo.updateGravity, true);
+        window.addEventListener('touchstart', Demo.fullscreen);
+        window.addEventListener('orientationchange', function() {
+            Demo.updateGravity();
+            Demo.updateScene();
+        }, false);
+    };
 
-    var message = document.getElementById('message');
+    window.addEventListener('load', Demo.init);
 
-    // We're using textContent because inserting content from external sources into your page using innerHTML can be dangerous.
-    // https://developer.mozilla.org/Web/API/Element.innerHTML#Security_considerations
-    message.textContent = translate('message');
+    Demo.mixed = function() {
+        var _world = _engine.world;
+        
+        Demo.reset();
 
-  }
+        World.add(_world, MouseConstraint.create(_engine));
+        
+        var stack = Composites.stack(20, 20, 10, 5, 0, 0, function(x, y, column, row) {
+            
+            return Bodies.rectangle(x, y, 40, 40, { friction: 0.01, restitution: 0.4,
+                    render: {//ボールのレンダリングの設定
+                        sprite: {//スプライトの設定
+                            texture: './img/player.png' //スプライトに使うテクスチャ画像を指定
+                        }
+                    }
+                });
+//            switch (Math.round(Common.random(0, 1))) {
+//                
+//            case 0:
+//                if (Common.random() < 0.8) {
+//                    return Bodies.rectangle(x, y, Common.random(20, 40), Common.random(20, 40), { friction: 0.01, restitution: 0.4 });
+//                } else {
+//                    return Bodies.rectangle(x, y, Common.random(80, 120), Common.random(20, 30), { friction: 0.01, restitution: 0.4 });
+//                }
+//                break;
+//            case 1:
+//                return Bodies.polygon(x, y, Math.round(Common.random(4, 6)), Common.random(20, 40), { friction: 0.01, restitution: 0.4 });
+//            
+//            }
+        });
+        
+        World.add(_world, stack);
+    };
+    
+    Demo.updateScene = function() {
+        if (!_engine)
+            return;
+        
+        _sceneWidth = document.documentElement.clientWidth;
+        _sceneHeight = document.documentElement.clientHeight;
 
-});
+        var boundsMax = _engine.world.bounds.max,
+            renderOptions = _engine.render.options,
+            canvas = _engine.render.canvas;
+
+        boundsMax.x = _sceneWidth;
+        boundsMax.y = _sceneHeight;
+
+        canvas.width = renderOptions.width = _sceneWidth;
+        canvas.height = renderOptions.height = _sceneHeight;
+
+        Demo[_sceneName]();
+    };
+    
+    Demo.updateGravity = function () {
+        if (!_engine)
+            return;
+        
+        var orientation = window.orientation,
+            gravity = _engine.world.gravity;
+
+        if (orientation === 0) {
+            gravity.x = Common.clamp(event.gamma, -90, 90) / 90;
+            gravity.y = Common.clamp(event.beta, -90, 90) / 90;
+        } else if (orientation === 180) {
+            gravity.x = Common.clamp(event.gamma, -90, 90) / 90;
+            gravity.y = Common.clamp(-event.beta, -90, 90) / 90;
+        } else if (orientation === 90) {
+            gravity.x = Common.clamp(event.beta, -90, 90) / 90;
+            gravity.y = Common.clamp(-event.gamma, -90, 90) / 90;
+        } else if (orientation === -90) {
+            gravity.x = Common.clamp(-event.beta, -90, 90) / 90;
+            gravity.y = Common.clamp(event.gamma, -90, 90) / 90;
+        }
+    };
+    
+    Demo.reset = function() {
+        var _world = _engine.world;
+
+        Common._seed = 2;
+        
+        World.clear(_world);
+        Engine.clear(_engine);
+        
+        var offset = 5;
+        World.addBody(_world, Bodies.rectangle(_sceneWidth * 0.5, -offset, _sceneWidth + 0.5, 50.5, { isStatic: true }));
+        World.addBody(_world, Bodies.rectangle(_sceneWidth * 0.5, _sceneHeight + offset, _sceneWidth + 0.5, 50.5, { isStatic: true }));
+        World.addBody(_world, Bodies.rectangle(_sceneWidth + offset, _sceneHeight * 0.5, 50.5, _sceneHeight + 0.5, { isStatic: true }));
+        World.addBody(_world, Bodies.rectangle(-offset, _sceneHeight * 0.5, 50.5, _sceneHeight + 0.5, { isStatic: true }));
+    };
+
+})();
