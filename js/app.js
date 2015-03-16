@@ -26,8 +26,8 @@
         _engine = Engine.create(canvasContainer, {
             render: {
                 options: {
-                    wireframes: true,
-                    showAngleIndicator: true,
+                    wireframes: false,
+                    showAngleIndicator: false,
                     showDebug: true
                 }
             }
@@ -55,12 +55,12 @@
 
         World.add(_world, MouseConstraint.create(_engine));
         
-        var stack = Composites.stack(20, 20, 1, 10, 0, 0, function(x, y, column, row) {
+        var stack = Composites.stack(150, 50, 1, 10, 0, 0, function(x, y, column, row) {
             
-            return Bodies.rectangle(x, y, 20, 20, { friction: 0.01, restitution: 0.4,
+            return Bodies.rectangle(x, y, 50, 50, { density: 0.00025, friction: 0.01, restitution: 1,
                     render: {//ボールのレンダリングの設定
                         sprite: {//スプライトの設定
-                            texture: './img/player.png' //スプライトに使うテクスチャ画像を指定
+                            texture: './img/resize/player.png' //スプライトに使うテクスチャ画像を指定
                         }
                     }
                 });
